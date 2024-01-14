@@ -119,10 +119,19 @@ defmodule Drop7.Turn do
         |> remove_tile(x, y)
       end)
 
+      popping_game_state = %{game_state | game_objects: popping_game_objects(to_remove, game_objects)}
       updated_game_state = %{game_state | game_objects: updated_game_objects}
 
-      pop_tiles(updated_game_state, [updated_game_state | past_states])
+      pop_tiles(updated_game_state, [updated_game_state | [popping_game_state | past_states]])
     end
+  end
+
+  def popping_game_objects(to_remove, game_objects) do
+    Enum.reduce(to_remove, game_objects, fn {x, y}, new_game_objects ->
+      tile = get_at_coordinate(new_game_objects, x, y)
+
+      replace_tile_with(new_game_objects, x, y, Map.put(tile, :state, " popping"))
+    end)
   end
 
   def crack_adjacent_eggs(game_objects, x, y) do

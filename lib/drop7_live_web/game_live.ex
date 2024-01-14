@@ -12,7 +12,15 @@ defmodule Drop7Web.GameLive do
 
   def render(assigns) do
     ~H"""
+    <div class="turn-tracker">
+      <div class={"turn-#{@game_state.turn_count > 4}"} />
+      <div class={"turn-#{@game_state.turn_count > 3}"} />
+      <div class={"turn-#{@game_state.turn_count > 2}"} />
+      <div class={"turn-#{@game_state.turn_count > 1}"} />
+      <div class={"turn-#{@game_state.turn_count > 0}"} />
+    </div>
     <div class="game-container">
+      <div class="animating-modal" hidden={not @animating} />
       <div class="modal" hidden={not @game_state.game_over}>
         <div class="modal-content">
           <h1>Game Over </h1>
@@ -23,7 +31,7 @@ defmodule Drop7Web.GameLive do
       </div>
       <div class="next-tile">
         <div class="slot">
-            <div class={"tile tile-" <> to_string(@game_state.next_tile.value)}>
+            <div class={"tile tile-" <> to_string(@game_state.next_tile.value)} hidden={@animating}>
               <%= @game_state.next_tile.value %>
             </div>
           </div>
@@ -53,13 +61,14 @@ defmodule Drop7Web.GameLive do
 
             <%= if tile_or_slot.type in [:egg, :cracked] do %>
               <div class="slot tile-slot">
-                <div class={"tile tile-" <> to_string(tile_or_slot.type)}></div>
+                <div class={"tile tile-" <> to_string(tile_or_slot.type) <> Map.get(tile_or_slot, :state, "")}>
+                </div>
               </div>
             <% end %>
 
             <%= if tile_or_slot.type == :tile do %>
               <div class="slot tile-slot">
-                <div class={"tile tile-" <> to_string(tile_or_slot.value)}>
+                <div class={"tile tile-" <> to_string(tile_or_slot.value) <> Map.get(tile_or_slot, :state, "")}>
                   <%= tile_or_slot.value %>
                 </div>
               </div>
@@ -84,18 +93,16 @@ defmodule Drop7Web.GameLive do
   def mount(_params, _session, socket) do
     game_state = start_game()
 
-    socket = assign(socket, game_state: game_state) |> assign(tick: @tick)
+    socket = socket
+    |> assign(game_state: game_state)
+    |> assign(tick: @tick)
+    |> assign(animating: false)
 
     {:ok, socket}
   end
 
-  defp schedule_render(state, socket) do
-    Process.send_after(self(), {:render, state}, socket.assigns.tick)
-    {:noreply, socket}
-  end
-
   def handle_info({:render, []}, socket) do
-    {:noreply, socket}
+    {:noreply, assign(socket, animating: false)}
   end
 
   def handle_info({:render, [%{} = state | states]}, socket) do
@@ -107,7 +114,7 @@ defmodule Drop7Web.GameLive do
   def render_sequential_states(states, socket) do
     Process.send_after(self(), {:render, Enum.reverse(states)}, 0)
 
-    {:noreply, socket}
+    {:noreply, assign(socket, animating: true)}
   end
 
   def handle_event("start", _, socket) do
