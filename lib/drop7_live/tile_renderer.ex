@@ -24,7 +24,7 @@ defmodule Drop7.TileRenderer do
 
   def empty do
     %{
-      type: :empty,
+      type: :empty
     }
   end
 
@@ -32,25 +32,25 @@ defmodule Drop7.TileRenderer do
     %{
       id: UUID.uuid4(),
       type: :tile,
-      value: value,
+      value: value
     }
   end
 
   def overflow do
     %{
-      type: :overflow,
+      type: :overflow
     }
   end
 
   def egg do
     %{
-      type: :egg,
+      type: :egg
     }
   end
 
   def cracked do
     %{
-      type: :cracked,
+      type: :cracked
     }
   end
 end

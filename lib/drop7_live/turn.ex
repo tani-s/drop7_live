@@ -9,10 +9,12 @@ defmodule Drop7.Turn do
   # turn count
   # score
   # game over bool
+  # combo
   # next_tile
 
   @doc """
   Increase the height of all tiles by 1, and add a row of eggs to the bottom row.
+  Adds 17,000 to the current score.
   """
   def increment_level(%{game_objects: game_objects, score: score} = game_state, prior_states) do
     updated_game_objects =
@@ -23,9 +25,15 @@ defmodule Drop7.Turn do
         [%{type: :overflow} | [last_tile | rest]] ->
           [%{last_tile | type: :overflow} | rest] ++ [TileRenderer.egg()]
       end)
+
     print_board(updated_game_objects, "incremented level with egg row")
 
-    new_game_state = %{game_state | game_objects: updated_game_objects, turn_count: 0}
+    new_game_state = %{
+      game_state
+      | game_objects: updated_game_objects,
+        turn_count: 0,
+        score: score + 17_000
+    }
 
     pop_tiles(new_game_state, [new_game_state | [game_state | prior_states]])
   end
@@ -93,34 +101,51 @@ defmodule Drop7.Turn do
   Moves any tiles that are now over empty slots down.
   Repeats this process until no more tiles meet this condition.
   """
-  def pop_tiles(%{game_objects: game_objects} = game_state, past_states \\ []) do
-    to_remove = Enum.reduce(Enum.with_index(game_objects), MapSet.new(), fn {col, y}, col_acc ->
-      to_remove_tile = Enum.reduce(Enum.with_index(col), col_acc, fn
-        {%{type: :tile} = tile, x}, acc ->
-          if Drop7.Utils.tile_should_pop?(game_objects, x, y) do
-            MapSet.put(acc, {x, y})
-          else
-            acc
-          end
+  def pop_tiles(
+        %{game_objects: game_objects, score: score, combo: combo} = game_state,
+        past_states \\ []
+      ) do
+    to_remove =
+      Enum.reduce(Enum.with_index(game_objects), MapSet.new(), fn {col, y}, col_acc ->
+        to_remove_tile =
+          Enum.reduce(Enum.with_index(col), col_acc, fn
+            {%{type: :tile} = tile, x}, acc ->
+              if Drop7.Utils.tile_should_pop?(game_objects, x, y) do
+                MapSet.put(acc, {x, y})
+              else
+                acc
+              end
 
-        {_slot_or_egg, _}, acc ->
-          acc
+            {_slot_or_egg, _}, acc ->
+              acc
+          end)
+
+        MapSet.union(col_acc, to_remove_tile)
       end)
-
-      MapSet.union(col_acc, to_remove_tile)
-    end)
 
     if Enum.empty?(to_remove) do
       past_states
     else
-      updated_game_objects = Enum.reduce(to_remove, game_objects, fn {x, y}, new_game_objects ->
-        new_game_objects
-        |> crack_adjacent_eggs(x, y)
-        |> remove_tile(x, y)
-      end)
+      updated_game_objects =
+        Enum.reduce(to_remove, game_objects, fn {x, y}, new_game_objects ->
+          new_game_objects
+          |> crack_adjacent_eggs(x, y)
+          |> remove_tile(x, y)
+        end)
 
-      popping_game_state = %{game_state | game_objects: popping_game_objects(to_remove, game_objects)}
-      updated_game_state = %{game_state | game_objects: updated_game_objects}
+      popping_game_state = %{
+        game_state
+        | game_objects: popping_game_objects(to_remove, game_objects)
+      }
+
+      points = Enum.count(to_remove) * Drop7Live.Score.combo(combo)
+
+      updated_game_state = %{
+        game_state
+        | game_objects: updated_game_objects,
+          score: score + points,
+          combo: combo + 1
+      }
 
       pop_tiles(updated_game_state, [updated_game_state | [popping_game_state | past_states]])
     end
@@ -144,15 +169,18 @@ defmodule Drop7.Turn do
       {right, x, y - 1},
       {left, x, y + 1},
       {up, x - 1, y},
-      {down, x + 1, y},
+      {down, x + 1, y}
     ]
 
     Enum.reduce(potential_eggs, game_objects, fn
       {%{type: :egg}, x, y}, acc ->
         replace_tile_with(acc, x, y, TileRenderer.cracked())
+
       {%{type: :cracked}, x, y}, acc ->
         replace_tile_with(acc, x, y, random_tile())
-      _, acc -> acc
+
+      _, acc ->
+        acc
     end)
   end
 
@@ -205,10 +233,11 @@ defmodule Drop7.Turn do
   end
 
   defp last_empty_index(col) do
-    reversed_index = Enum.find_index(Enum.reverse(col), fn
-      %{type: :empty} -> true
-      _ -> false
-    end)
+    reversed_index =
+      Enum.find_index(Enum.reverse(col), fn
+        %{type: :empty} -> true
+        _ -> false
+      end)
 
     if is_nil(reversed_index) do
       nil
@@ -242,25 +271,27 @@ defmodule Drop7.Turn do
   # returns a series of game states to animate.
   # game states are orderd [last ... first]
   def states_to_animate(
-        %{game_objects: game_objects, score: score, next_tile: tile, game_over: false} = game_state,
+        %{game_objects: game_objects, score: score, next_tile: tile, game_over: false} =
+          game_state,
         y
       ) do
-
     if is_nil(last_empty_index(Enum.at(game_objects, y))) do
       # Not possible to place a tile in this column
       [game_state]
     else
-      [popped_state_with_tile | intermediate_states] = states = handle_new_tile(game_state, tile, y)
+      [popped_state_with_tile | intermediate_states] =
+        states = handle_new_tile(game_state, tile, y)
 
       if check_game_over(popped_state_with_tile) do
         [Map.put(popped_state_with_tile, :game_over, true) | intermediate_states]
       else
-        [popped_incremented_state | additional_states] = states = increment_turn(popped_state_with_tile, intermediate_states)
+        [popped_incremented_state | additional_states] =
+          states = increment_turn(popped_state_with_tile, intermediate_states)
 
         if check_game_over(popped_incremented_state) do
           [Map.put(popped_incremented_state, :game_over, true) | additional_states]
         else
-          [Map.put(popped_incremented_state, :next_tile, random_tile()) | additional_states ]
+          [Map.put(popped_incremented_state, :next_tile, random_tile()) | additional_states]
         end
       end
     end

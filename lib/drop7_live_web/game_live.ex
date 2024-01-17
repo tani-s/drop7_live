@@ -3,15 +3,15 @@ defmodule Drop7Web.GameLive do
 
   alias Drop7.Turn
 
-  ### TODO:
-  # animate popping
-  # increment turns
-  # scoring
   # Time in ms that schedules the game loop
   @tick 500
 
   def render(assigns) do
     ~H"""
+    <div class="score">
+      <%= Number.Delimit.number_to_delimited(trunc(@game_state.score)) %>
+    </div>
+
     <div class="turn-tracker">
       <div class={"turn-#{@game_state.turn_count > 4}"} />
       <div class={"turn-#{@game_state.turn_count > 3}"} />
@@ -19,23 +19,27 @@ defmodule Drop7Web.GameLive do
       <div class={"turn-#{@game_state.turn_count > 1}"} />
       <div class={"turn-#{@game_state.turn_count > 0}"} />
     </div>
+
     <div class="game-container">
       <div class="animating-modal" hidden={not @animating} />
       <div class="modal" hidden={not @game_state.game_over}>
         <div class="modal-content">
-          <h1>Game Over </h1>
+          <h1>Game Over</h1>
+
           <button phx-click="start" class="btn">
             Play Again
           </button>
         </div>
       </div>
+
       <div class="next-tile">
         <div class="slot">
-            <div class={"tile tile-" <> to_string(@game_state.next_tile.value)} hidden={@animating}>
-              <%= @game_state.next_tile.value %>
-            </div>
+          <div class={"tile tile-" <> to_string(@game_state.next_tile.value)} hidden={@animating}>
+            <%= @game_state.next_tile.value %>
           </div>
+        </div>
       </div>
+
       <div class="game-board">
         <div :for={{row, index} <- Enum.with_index(@game_state.game_objects)}>
           <div :for={tile_or_slot <- row} phx-click={index}>
@@ -71,6 +75,10 @@ defmodule Drop7Web.GameLive do
                 <div class={"tile tile-" <> to_string(tile_or_slot.value) <> Map.get(tile_or_slot, :state, "")}>
                   <%= tile_or_slot.value %>
                 </div>
+
+                <div class="points" hidden={Map.get(tile_or_slot, :state, "") != " popping"}>
+                  +<%= Number.Delimit.number_to_delimited(Drop7Live.Score.combo(@game_state.combo)) %>
+                </div>
               </div>
             <% end %>
           </div>
@@ -81,22 +89,24 @@ defmodule Drop7Web.GameLive do
   end
 
   def start_game() do
-    game_state = Drop7.InitGame.starting_tiles()
-    |> IO.inspect()
-    |> Drop7.TileRenderer.render_tile_map()
-    |> tap(&Turn.print_board(&1, "rendered game objects"))
-    |> Drop7.InitGame.to_game_state()
+    game_state =
+      Drop7.InitGame.starting_tiles()
+      |> IO.inspect()
+      |> Drop7.TileRenderer.render_tile_map()
+      |> tap(&Turn.print_board(&1, "rendered game objects"))
+      |> Drop7.InitGame.to_game_state()
 
-    Map.put(game_state, :next_tile, Turn.random_tile)
+    Map.put(game_state, :next_tile, Turn.random_tile())
   end
 
   def mount(_params, _session, socket) do
     game_state = start_game()
 
-    socket = socket
-    |> assign(game_state: game_state)
-    |> assign(tick: @tick)
-    |> assign(animating: false)
+    socket =
+      socket
+      |> assign(game_state: game_state)
+      |> assign(tick: @tick)
+      |> assign(animating: false)
 
     {:ok, socket}
   end
@@ -125,53 +135,11 @@ defmodule Drop7Web.GameLive do
     {:noreply, socket}
   end
 
-  def handle_event("0", _, %{assigns: %{game_state: game_state}} = socket) do
-    [new_game_state | _]= states = Turn.states_to_animate(game_state, 0)
+  def handle_event(number, _, %{assigns: %{game_state: game_state}} = socket)
+      when number in ["0", "1", "2", "3", "4", "5", "6"] do
+    [new_game_state | _] =
+      states = Turn.states_to_animate(%{game_state | combo: 1}, String.to_integer(number))
 
     render_sequential_states(states, socket)
-    # {:noreply, assign(socket, game_state: new_game_state)}
-  end
-
-
-  def handle_event("1", _, %{assigns: %{game_state: game_state}} = socket) do
-    [new_game_state | _]= states = Turn.states_to_animate(game_state, 1)
-
-    render_sequential_states(states, socket)
-    # {:noreply, assign(socket, game_state: new_game_state)}
-  end
-
-  def handle_event("2", _, %{assigns: %{game_state: game_state}} = socket) do
-    [new_game_state | _]= states = Turn.states_to_animate(game_state, 2)
-
-    render_sequential_states(states, socket)
-    # {:noreply, assign(socket, game_state: new_game_state)}
-  end
-
-  def handle_event("3", _, %{assigns: %{game_state: game_state}} = socket) do
-    [new_game_state | _]= states = Turn.states_to_animate(game_state, 3)
-
-    render_sequential_states(states, socket)
-    # {:noreply, assign(socket, game_state: new_game_state)}
-  end
-
-  def handle_event("4", _, %{assigns: %{game_state: game_state}} = socket) do
-    [new_game_state | _]= states = Turn.states_to_animate(game_state, 4)
-
-    render_sequential_states(states, socket)
-    # {:noreply, assign(socket, game_state: new_game_state)}
-  end
-
-  def handle_event("5", _, %{assigns: %{game_state: game_state}} = socket) do
-    [new_game_state | _]= states = Turn.states_to_animate(game_state, 5)
-
-    render_sequential_states(states, socket)
-    # {:noreply, assign(socket, game_state: new_game_state)}
-  end
-
-  def handle_event("6", _, %{assigns: %{game_state: game_state}} = socket) do
-    [new_game_state | _]= states = Turn.states_to_animate(game_state, 6)
-
-    render_sequential_states(states, socket)
-    # {:noreply, assign(socket, game_state: new_game_state)}
   end
 end

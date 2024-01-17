@@ -27,6 +27,7 @@ defmodule Drop7.InitGame do
       game_objects: game_objects,
       score: 0,
       turn_count: 0,
+      combo: 1,
       game_over: false,
       next_tile: nil
     }

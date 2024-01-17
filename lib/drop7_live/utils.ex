@@ -17,13 +17,14 @@ defmodule Drop7.Utils do
   end
 
   def game_object_col_height(game_objects, x) do
-    index = Enum.find_index(Enum.at(game_objects, x), fn
-      %{type: :tile} -> true
-      %{type: :egg} -> true
-      %{type: :cracked} -> true
-      %{type: :empty} -> false
-      %{type: :overflow} -> false
-    end)
+    index =
+      Enum.find_index(Enum.at(game_objects, x), fn
+        %{type: :tile} -> true
+        %{type: :egg} -> true
+        %{type: :cracked} -> true
+        %{type: :empty} -> false
+        %{type: :overflow} -> false
+      end)
 
     if is_nil(index) do
       0
