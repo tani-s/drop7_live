@@ -47,7 +47,7 @@ defmodule Drop7Web.GameLive do
         </div>
 
         <div class="next-tile">
-          <div class="slot">
+          <div class="slot" hidden={@animating}>
             <div class={"tile tile-" <> to_string(@game_state.next_tile.value)} hidden={@animating}>
               <%= @game_state.next_tile.value %>
             </div>

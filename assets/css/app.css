@@ -118,6 +118,11 @@ header {
 
 /* Slots */
 
+.next-tile {
+    height: 50px;
+    width: 50px;
+}
+
 .slot {
     position: relative;
     border: 1px solid white;
@@ -166,6 +171,7 @@ header {
     background-color: #3a87c5;
 }
 .tile-egg {
+    border-radius: 50%;
     background-color: #f9fbfc;
     color: transparent;
     outline: 5px solid #294673;
