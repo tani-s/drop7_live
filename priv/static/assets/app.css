@@ -1758,15 +1758,15 @@ header {
   border-radius: 50%;
   background-color: #f9fbfc;
   color: transparent;
-  outline: 5px solid #294673;
-  outline-offset: -10px;
+  box-shadow: inset 0px 0px 0px 5px #f9fbfc, 
+                inset 0px 0px 0px 10px #294673;
 }
 
 .tile-cracked {
   background-color: #ecf2f4;
   color: transparent;
-  outline: 5px solid #294673;
-  outline-offset: -11px;
+  box-shadow: inset 0px 0px 0px 5px #f9fbfc, 
+                inset 0px 0px 0px 10px #294673;
 }
 
 .tile-cracked:after {
