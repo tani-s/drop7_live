@@ -47,6 +47,25 @@ defmodule Drop7.Turn do
     check_overflowing(game_objects) or check_board_full(game_objects)
   end
 
+  defp check_board_empty(%{game_objects: game_objects}) do
+    game_objects
+    |> Enum.map(fn col ->
+      Enum.map(col, fn
+        # if there are any non-empty, non-overflow tiles, we're empty
+        %{type: :empty} ->
+          true
+
+        %{type: :overflow} ->
+          true
+
+        _ ->
+          false
+      end)
+      |> Enum.all?()
+    end)
+    |> Enum.all?()
+  end
+
   defp check_board_full(game_objects) do
     game_objects
     |> Enum.map(fn col ->
@@ -261,6 +280,7 @@ defmodule Drop7.Turn do
   - Checks for popping tiles.
     - (Recursively) pops them, if there are any.
   - Checks if the game is ended by this placement.
+  - Checks if the board is emptied by this placement.
   - Increments the turn count.
     - Increments the level, if necessary.
       - If so, checks / pops tiles.
@@ -282,16 +302,22 @@ defmodule Drop7.Turn do
       [popped_state_with_tile | intermediate_states] =
         states = handle_new_tile(game_state, tile, y)
 
-      if check_game_over(popped_state_with_tile) do
-        [Map.put(popped_state_with_tile, :game_over, true) | intermediate_states]
-      else
-        [popped_incremented_state | additional_states] =
-          states = increment_turn(popped_state_with_tile, intermediate_states)
+      if check_board_empty(popped_state_with_tile) do
+        [next_state | additional_states ] = increment_level(popped_state_with_tile, intermediate_states)
 
-        if check_game_over(popped_incremented_state) do
-          [Map.put(popped_incremented_state, :game_over, true) | additional_states]
+        [Map.put(next_state, :next_tile, random_tile()) | additional_states]
+      else
+        if check_game_over(popped_state_with_tile) do
+          [Map.put(popped_state_with_tile, :game_over, true) | intermediate_states]
         else
-          [Map.put(popped_incremented_state, :next_tile, random_tile()) | additional_states]
+          [popped_incremented_state | additional_states] =
+            states = increment_turn(popped_state_with_tile, intermediate_states)
+
+          if check_game_over(popped_incremented_state) do
+            [Map.put(popped_incremented_state, :game_over, true) | additional_states]
+          else
+            [Map.put(popped_incremented_state, :next_tile, random_tile()) | additional_states]
+          end
         end
       end
     end
