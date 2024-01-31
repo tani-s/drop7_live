@@ -4,6 +4,12 @@ defmodule Drop7Web.GameLive do
   alias Drop7.Turn
   alias Phoenix.LiveView.JS
 
+  # TODO
+  # Level + Max combo counts
+  # Localstorage for high scores
+  # Row and column highlighting
+  # Dropping tile animation
+
   # Time in ms that schedules the game loop
   @tick 500
 
@@ -71,7 +77,7 @@ defmodule Drop7Web.GameLive do
                     </div>
                   </div>
                 <% else %>
-                  <div class="overflow-slot">
+                  <div class="slot overflow-slot">
                     <div class="tile tile-empty" />
                   </div>
                 <% end %>
@@ -106,7 +112,6 @@ defmodule Drop7Web.GameLive do
   def start_game() do
     game_state =
       Drop7.InitGame.starting_tiles()
-      |> IO.inspect()
       |> Drop7.TileRenderer.render_tile_map()
       |> tap(&Turn.print_board(&1, "rendered game objects"))
       |> Drop7.InitGame.to_game_state()
