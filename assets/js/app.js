@@ -22,8 +22,42 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
+let Hooks = {}
+Hooks.StoreSettings = {
+  // Called when a LiveView is mounted, if it includes an element that uses this hook.
+  mounted() {
+    this.handleEvent("store", (obj) => this.store(obj))
+    this.handleEvent("clear", (obj) => this.clear(obj))
+    this.handleEvent("restore", (obj) => this.restore(obj))
+    // Send a "restore" event to the LiveView, including the stored username.
+    // If nothing is stored yet, we'll send a `null` value.
+    this.pushEvent("get_localstorage", {
+      game_state: JSON.parse(localStorage.getItem("game_state")),
+      scores: JSON.parse(localStorage.getItem("scores")),
+    })
+  },
+
+  store(obj) {
+    localStorage.setItem(obj.key, JSON.stringify(obj.data))
+  },
+
+  restore(obj) {
+    var data = localStorage.getItem(obj.key)
+    this.pushEvent(obj.event, data)
+  },
+
+  clear(obj) {
+    localStorage.removeItem(obj.key)
+  }
+}
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-let liveSocket = new LiveSocket("/live", Socket, {params: {_csrf_token: csrfToken}})
+
+// Modifying this pre-existing code to include the hook.
+let liveSocket = new LiveSocket("/live", Socket, {
+  params: {_csrf_token: csrfToken},
+  hooks: Hooks,
+})
 
 // Show progress bar on live navigation and form submits
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})

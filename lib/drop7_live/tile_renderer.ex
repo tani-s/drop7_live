@@ -12,7 +12,7 @@ defmodule Drop7.TileRenderer do
 
       empty_slots =
         Enum.map(
-          Enum.with_index(List.duplicate(:empty, 7 - Enum.count(col))),
+          Enum.with_index(List.duplicate("empty", 7 - Enum.count(col))),
           fn {_, i} ->
             empty()
           end
@@ -24,33 +24,32 @@ defmodule Drop7.TileRenderer do
 
   def empty do
     %{
-      type: :empty
+      "type" => "empty"
     }
   end
 
   def tile(value) do
     %{
-      id: UUID.uuid4(),
-      type: :tile,
-      value: value
+      "type" => "tile",
+      "value" => value
     }
   end
 
   def overflow do
     %{
-      type: :overflow
+      "type" => "overflow"
     }
   end
 
   def egg do
     %{
-      type: :egg
+      "type" => "egg"
     }
   end
 
   def cracked do
     %{
-      type: :cracked
+      "type" => "cracked"
     }
   end
 end

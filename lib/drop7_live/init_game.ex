@@ -24,12 +24,12 @@ defmodule Drop7.InitGame do
 
   def to_game_state(game_objects) do
     %{
-      game_objects: game_objects,
-      score: 0,
-      turn_count: 0,
-      combo: 1,
-      game_over: false,
-      next_tile: nil
+      "game_objects" => game_objects,
+      "score" => 0,
+      "turn_count" => 0,
+      "combo" => 1,
+      "game_over" => false,
+      "next_tile" => nil
     }
   end
 

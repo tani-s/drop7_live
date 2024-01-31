@@ -4,7 +4,7 @@ defmodule Drop7.Utils do
   """
 
   def tile_should_pop?(game_objects, x, y) do
-    value = game_objects |> Enum.at(y) |> Enum.at(x) |> Map.get(:value)
+    value = game_objects |> Enum.at(y) |> Enum.at(x) |> Map.get("value")
 
     value in popping_tiles_for_coordinate(game_objects, x, y)
   end
@@ -19,11 +19,11 @@ defmodule Drop7.Utils do
   def game_object_col_height(game_objects, x) do
     index =
       Enum.find_index(Enum.at(game_objects, x), fn
-        %{type: :tile} -> true
-        %{type: :egg} -> true
-        %{type: :cracked} -> true
-        %{type: :empty} -> false
-        %{type: :overflow} -> false
+        %{"type" => "tile"} -> true
+        %{"type" => "egg"} -> true
+        %{"type" => "cracked"} -> true
+        %{"type" => "empty"} -> false
+        %{"type" => "overflow"} -> false
       end)
 
     if is_nil(index) do
@@ -78,19 +78,19 @@ defmodule Drop7.Utils do
 
   def game_objects_before_nil(game_objects) do
     Enum.reduce_while(game_objects, 0, fn
-      %{type: :tile}, acc ->
+      %{"type" => "tile"}, acc ->
         {:cont, acc + 1}
 
-      %{type: :egg}, acc ->
+      %{"type" => "egg"}, acc ->
         {:cont, acc + 1}
 
-      %{type: :cracked}, acc ->
+      %{"type" => "cracked"}, acc ->
         {:cont, acc + 1}
 
-      %{type: :empty}, acc ->
+      %{"type" => "empty"}, acc ->
         {:halt, acc}
 
-      %{type: :overflow}, acc ->
+      %{"type" => "overflow"}, acc ->
         {:halt, acc}
     end)
   end

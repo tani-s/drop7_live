@@ -16,27 +16,30 @@ defmodule Drop7.Turn do
   Increase the height of all tiles by 1, and add a row of eggs to the bottom row.
   Adds 17,000 to the current score.
   """
-  def increment_level(%{game_objects: game_objects, score: score} = game_state, prior_states) do
+  def increment_level(
+        %{"game_objects" => game_objects, "score" => score} = game_state,
+        prior_states
+      ) do
     updated_game_objects =
       Enum.map(game_objects, fn
-        [%{type: :overflow} | [%{type: :empty} | rest]] ->
+        [%{"type" => "overflow"} | [%{"type" => "empty"} | rest]] ->
           [TileRenderer.overflow() | rest] ++ [TileRenderer.egg()]
 
-        [%{type: :overflow} | [last_tile | rest]] ->
-          [%{last_tile | type: :overflow} | rest] ++ [TileRenderer.egg()]
+        [%{"type" => "overflow"} | [last_tile | rest]] ->
+          [%{last_tile | "type" => "overflow"} | rest] ++ [TileRenderer.egg()]
       end)
 
-    print_board(updated_game_objects, "incremented level with egg row")
+    # print_board(updated_game_objects, "incremented level with egg row")
 
     new_game_state = %{
       game_state
-      | game_objects: updated_game_objects,
-        turn_count: 0,
-        score: score + 17_000
+      | "game_objects" => updated_game_objects,
+        "turn_count" => 0,
+        "score" => score + 17_000
     }
 
     if check_game_over(new_game_state) do
-      [Map.put(new_game_state, :game_over, true) | [game_state | prior_states]]
+      [Map.put(new_game_state, "game_over", true) | [game_state | prior_states]]
     else
       pop_tiles(new_game_state, [new_game_state | [game_state | prior_states]])
     end
@@ -47,19 +50,19 @@ defmodule Drop7.Turn do
   - There is a non-empty overflow row
   - All slots are filled
   """
-  def check_game_over(%{game_objects: game_objects}) do
+  def check_game_over(%{"game_objects" => game_objects}) do
     check_overflowing(game_objects) or check_board_full(game_objects)
   end
 
-  defp check_board_empty(%{game_objects: game_objects}) do
+  defp check_board_empty(%{"game_objects" => game_objects}) do
     game_objects
     |> Enum.map(fn col ->
       Enum.map(col, fn
         # if there are any non-empty, non-overflow tiles, we're empty
-        %{type: :empty} ->
+        %{"type" => "empty"} ->
           true
 
-        %{type: :overflow} ->
+        %{"type" => "overflow"} ->
           true
 
         _ ->
@@ -75,7 +78,7 @@ defmodule Drop7.Turn do
     |> Enum.map(fn col ->
       Enum.map(col, fn
         # if there is an empty tile anywhere on the board, we're safe
-        %{type: :empty} ->
+        %{"type" => "empty"} ->
           false
 
         _ ->
@@ -90,7 +93,7 @@ defmodule Drop7.Turn do
     game_objects
     |> Enum.map(fn
       # if there is a tile value in any overflow slot, game over
-      [%{type: :overflow, value: value} | _] ->
+      [%{"type" => "overflow", "value" => value} | _] ->
         true
 
       _ ->
@@ -99,22 +102,22 @@ defmodule Drop7.Turn do
     |> Enum.any?()
   end
 
-  def print_board(%{game_objects: game_objects}, label \\ "") do
+  def print_board(%{"game_objects" => game_objects}, label \\ "") do
     Enum.map(game_objects, fn col ->
-      Enum.map(col, fn tile -> Map.get(tile, :value) || tile.type end)
+      Enum.map(col, fn tile -> Map.get(tile, "value") || Map.get(tile, "type") end)
     end)
     |> IO.inspect(label: label <> " from game state")
   end
 
   def print_board(game_objects, label) do
     Enum.map(game_objects, fn col ->
-      Enum.map(col, fn tile -> Map.get(tile, :value) || tile.type end)
+      Enum.map(col, fn tile -> Map.get(tile, "value") || Map.get(tile, "type") end)
     end)
     |> IO.inspect(label: label)
   end
 
   def print_col(col, label \\ "") do
-    Enum.map(col, fn tile -> Map.get(tile, :value) || tile.type end)
+    Enum.map(col, fn tile -> Map.get(tile, "value") || Map.get(tile, "type") end)
     |> IO.inspect(label: label)
   end
 
@@ -125,14 +128,14 @@ defmodule Drop7.Turn do
   Repeats this process until no more tiles meet this condition.
   """
   def pop_tiles(
-        %{game_objects: game_objects, score: score, combo: combo} = game_state,
+        %{"game_objects" => game_objects, "score" => score, "combo" => combo} = game_state,
         past_states \\ []
       ) do
     to_remove =
       Enum.reduce(Enum.with_index(game_objects), MapSet.new(), fn {col, y}, col_acc ->
         to_remove_tile =
           Enum.reduce(Enum.with_index(col), col_acc, fn
-            {%{type: :tile} = tile, x}, acc ->
+            {%{"type" => "tile"} = tile, x}, acc ->
               if Drop7.Utils.tile_should_pop?(game_objects, x, y) do
                 MapSet.put(acc, {x, y})
               else
@@ -158,16 +161,16 @@ defmodule Drop7.Turn do
 
       popping_game_state = %{
         game_state
-        | game_objects: popping_game_objects(to_remove, game_objects)
+        | "game_objects" => popping_game_objects(to_remove, game_objects)
       }
 
       points = Enum.count(to_remove) * Drop7Live.Score.combo(combo)
 
       updated_game_state = %{
         game_state
-        | game_objects: updated_game_objects,
-          score: score + points,
-          combo: combo + 1
+        | "game_objects" => updated_game_objects,
+          "score" => score + points,
+          "combo" => combo + 1
       }
 
       pop_tiles(updated_game_state, [updated_game_state | [popping_game_state | past_states]])
@@ -178,7 +181,7 @@ defmodule Drop7.Turn do
     Enum.reduce(to_remove, game_objects, fn {x, y}, new_game_objects ->
       tile = get_at_coordinate(new_game_objects, x, y)
 
-      replace_tile_with(new_game_objects, x, y, Map.put(tile, :state, " popping"))
+      replace_tile_with(new_game_objects, x, y, Map.put(tile, "state", " popping"))
     end)
   end
 
@@ -196,10 +199,10 @@ defmodule Drop7.Turn do
     ]
 
     Enum.reduce(potential_eggs, game_objects, fn
-      {%{type: :egg}, x, y}, acc ->
+      {%{"type" => "egg"}, x, y}, acc ->
         replace_tile_with(acc, x, y, TileRenderer.cracked())
 
-      {%{type: :cracked}, x, y}, acc ->
+      {%{"type" => "cracked"}, x, y}, acc ->
         replace_tile_with(acc, x, y, random_tile())
 
       _, acc ->
@@ -221,7 +224,7 @@ defmodule Drop7.Turn do
 
   def remove_tile(game_objects, x, y) do
     col = Enum.at(game_objects, y)
-    {removed, [%{type: :overflow} = overflow | rest]} = List.pop_at(col, x)
+    {removed, [%{"type" => "overflow"} = overflow | rest]} = List.pop_at(col, x)
 
     List.replace_at(game_objects, y, [overflow | [TileRenderer.empty() | rest]])
   end
@@ -237,12 +240,12 @@ defmodule Drop7.Turn do
   Adds 1 to the turn count.
   If the count is at 4, resets the count to 0 and increments the level.
   """
-  def increment_turn(%{turn_count: 4} = game_state, prior_states) do
+  def increment_turn(%{"turn_count" => 4} = game_state, prior_states) do
     increment_level(game_state, prior_states)
   end
 
-  def increment_turn(%{turn_count: turn} = game_state, prior_states) do
-    [%{game_state | turn_count: turn + 1} | prior_states]
+  def increment_turn(%{"turn_count" => turn} = game_state, prior_states) do
+    [%{game_state | "turn_count" => turn + 1} | prior_states]
   end
 
   # Assumes there is an empty space in this col
@@ -258,7 +261,7 @@ defmodule Drop7.Turn do
   defp last_empty_index(col) do
     reversed_index =
       Enum.find_index(Enum.reverse(col), fn
-        %{type: :empty} -> true
+        %{"type" => "empty"} -> true
         _ -> false
       end)
 
@@ -269,10 +272,10 @@ defmodule Drop7.Turn do
     end
   end
 
-  def handle_new_tile(%{game_objects: game_objects} = game_state, tile, y) do
+  def handle_new_tile(%{"game_objects" => game_objects} = game_state, tile, y) do
     updated_game_objects = add_tile_to_col(game_objects, tile, y)
 
-    new_game_state = %{game_state | game_objects: updated_game_objects}
+    new_game_state = %{game_state | "game_objects" => updated_game_objects}
 
     pop_tiles(new_game_state, [new_game_state])
   end
@@ -295,7 +298,12 @@ defmodule Drop7.Turn do
   # returns a series of game states to animate.
   # game states are orderd [last ... first]
   def states_to_animate(
-        %{game_objects: game_objects, score: score, next_tile: tile, game_over: false} =
+        %{
+          "game_objects" => game_objects,
+          "score" => score,
+          "next_tile" => tile,
+          "game_over" => false
+        } =
           game_state,
         y
       ) do
@@ -311,19 +319,19 @@ defmodule Drop7.Turn do
         [next_state | additional_states] =
           increment_level(popped_state_with_tile, intermediate_states)
 
-        [Map.put(next_state, :next_tile, random_tile()) | additional_states]
+        [Map.put(next_state, "next_tile", random_tile()) | additional_states]
       else
         # check for game over
         if check_game_over(popped_state_with_tile) do
-          [Map.put(popped_state_with_tile, :game_over, true) | intermediate_states]
+          [Map.put(popped_state_with_tile, "game_over", true) | intermediate_states]
         else
           [popped_incremented_state | additional_states] =
             states = increment_turn(popped_state_with_tile, intermediate_states)
 
           if check_game_over(popped_incremented_state) do
-            [Map.put(popped_incremented_state, :game_over, true) | additional_states]
+            [Map.put(popped_incremented_state, "game_over", true) | additional_states]
           else
-            [Map.put(popped_incremented_state, :next_tile, random_tile()) | additional_states]
+            [Map.put(popped_incremented_state, "next_tile", random_tile()) | additional_states]
           end
         end
       end
