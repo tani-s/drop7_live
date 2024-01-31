@@ -308,7 +308,8 @@ defmodule Drop7.Turn do
 
       # check for full clear
       if check_board_empty(popped_state_with_tile) do
-        [next_state | additional_states ] = increment_level(popped_state_with_tile, intermediate_states)
+        [next_state | additional_states] =
+          increment_level(popped_state_with_tile, intermediate_states)
 
         [Map.put(next_state, :next_tile, random_tile()) | additional_states]
       else

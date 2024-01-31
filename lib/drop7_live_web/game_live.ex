@@ -20,12 +20,11 @@ defmodule Drop7Web.GameLive do
         <h2 phx-click={JS.toggle(to: "#instructions")}>How to Play</h2>
         <p id="instructions">Drop tiles to build up rows and columns.
 
-        When a tile is in a row or column of length equal to the tile's value, it will pop!
+          When a tile is in a row or column of length equal to the tile's value, it will pop!
 
-        New "egg" tiles will appear every five turns. Pop tiles adjacent to the eggs to reveal their values.
+          New "egg" tiles will appear every five turns. Pop tiles adjacent to the eggs to reveal their values.
 
-        Play till the board overflows. Good luck!
-        </p>
+          Play till the board overflows. Good luck!</p>
       </div>
 
       <div class="score">
