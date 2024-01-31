@@ -35,7 +35,11 @@ defmodule Drop7.Turn do
         score: score + 17_000
     }
 
-    pop_tiles(new_game_state, [new_game_state | [game_state | prior_states]])
+    if check_game_over(new_game_state) do
+      [Map.put(new_game_state, :game_over, true) | [game_state | prior_states]]
+    else
+      pop_tiles(new_game_state, [new_game_state | [game_state | prior_states]])
+    end
   end
 
   @doc """
@@ -302,11 +306,13 @@ defmodule Drop7.Turn do
       [popped_state_with_tile | intermediate_states] =
         states = handle_new_tile(game_state, tile, y)
 
+      # check for full clear
       if check_board_empty(popped_state_with_tile) do
         [next_state | additional_states ] = increment_level(popped_state_with_tile, intermediate_states)
 
         [Map.put(next_state, :next_tile, random_tile()) | additional_states]
       else
+        # check for game over
         if check_game_over(popped_state_with_tile) do
           [Map.put(popped_state_with_tile, :game_over, true) | intermediate_states]
         else
